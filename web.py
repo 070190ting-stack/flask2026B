@@ -44,20 +44,50 @@ def index():
 
 @app.route("/m1")
 def m1():
-    R = ""
+    # 1. 透過 GET 請求，取得網址列上的 keyword 參數 (預設為空字串)
+    q = request.args.get("keyword", "")
+    
+    # 2. 建立一個包含搜尋框的 HTML 字串
+    # value="q" 可以讓搜尋完後，框框裡面還保留著剛剛輸入的字
+    R = f"""
+    <h2>近期上映電影查詢</h2>
+    <form action="/m1" method="GET">
+        請輸入片名關鍵字：
+        <input type="text" name="keyword" value="{q}">
+        <button type="submit">查詢</button>
+    </form>
+    <hr>
+    """
+
+    # 3. 開始爬蟲
     url = "https://www.atmovies.com.tw/movie/next/"
     Data = requests.get(url)
     Data.encoding = "utf-8"
-    #print(Data.text)
     sp = BeautifulSoup(Data.text, "html.parser")
-    result=sp.select(".filmListAllX li")
+    result = sp.select(".filmListAllX li")
+    
+    # 4. 處理資料並過濾
     for item in result:
-        R += item.find("img").get("alt") + "<br>"
-        R += "https://www.atmovies.com.tw" + item.find("a").get("href") + "<br>"
-        R += "https://www.atmovies.com.tw" + item.find("img").get("src") + "<br><br>"
+        # 防呆：先把 img 標籤找出來，確定存在才繼續
+        img_tag = item.find("img")
+        if not img_tag:
+            continue
+            
+        alt_text = img_tag.get("alt", "") # 電影名稱
+        
+        # 核心邏輯：如果使用者有輸入關鍵字，且關鍵字「不在」電影名稱中，就跳過這筆資料
+        if q and q not in alt_text:
+            continue
+            
+        # 如果符合條件（或是沒輸入關鍵字時），就把它加入結果中
+        introuce = "https://www.atmovies.com.tw" + item.find("a").get("href")
+        R += "<a href='" + introuce + "'>" + alt_text + "</a><br>"
+        
+        post = "https://www.atmovies.com.tw" + img_tag.get("src")
+        R += "<img src='" + post + "'><br><br>"
+        
     return R
-
-
+    
 @app.route("/spider")
 def spider():
     R = ""

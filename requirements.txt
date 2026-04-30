@@ -1,5 +1,3 @@
 flask
-reqests
-beautifulsoup4
 firebase_admin
 bs4

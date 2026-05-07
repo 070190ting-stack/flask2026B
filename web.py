@@ -43,7 +43,87 @@ def index():
     link += "<br><a href=/spiderMovie>爬取即將上映電影並存入資料庫</a><br>"
     link += "<br><a href=/searchMovie>搜尋即將上映電影</a><br>"
     link += "<br><a href=/road>台中市十大肇事路口</a><br>"
+    link += "<br><a href=/weather>天氣與降雨</a><br>"
     return link
+
+@app.route("/weather", methods=["GET", "POST"])
+def weather():
+    # 1. 建立跟電影查詢一樣漂亮的基本排版與表單 (注意 method="POST")
+    html_content = """
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+        }
+        .result-box {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            display: inline-block;
+            text-align: left;
+            min-width: 300px;
+        }
+    </style>
+    <h2>🌤️ 台灣各縣市天氣與降雨查詢</h2>
+    <form action="/weather" method="POST">
+        <input type="text" name="city" placeholder="請輸入縣市 (例如: 台北市)" style="padding: 8px; font-size: 16px; width: 60%;">
+        <button type="submit" style="padding: 8px 15px; font-size: 16px; cursor: pointer; background-color: #5bc0de; color: white; border: none; border-radius: 4px;">查詢</button>
+    </form>
+    <br><a href="/" style="text-decoration: none; color: gray;">← 回首頁</a>
+    <hr>
+    """
+
+    # 2. 判斷使用者是否送出了表單 (POST 請求)
+    if request.method == "POST":
+        # POST 寫法：用 request.form 抓取資料，而不是 request.args
+        city = request.form.get("city", "").strip()
+
+        if city:
+            city = city.replace("台", "臺")
+            token = "rdec-key-123-45678-011121314" # 你的 API Token
+            url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization={token}&format=JSON&locationName={city}"
+
+            try:
+                response = requests.get(url)
+                data_dict = response.json()
+
+                # 安全檢查：看 API 有沒有真的回傳該縣市的資料
+                locations = data_dict.get("records", {}).get("location", [])
+
+                if locations:
+                    location_data = locations[0]
+                    city_name = location_data["locationName"]
+                    weather_elements = location_data["weatherElement"]
+
+                    # 取得天氣現象與降雨機率
+                    weather_desc = weather_elements[0]["time"][0]["parameter"]["parameterName"]
+                    rain_chance = weather_elements[1]["time"][0]["parameter"]["parameterName"]
+
+                    # 將成功的結果組合成 HTML 加入頁面
+                    html_content += f"""
+                    <div class="result-box">
+                        <h3 style="color: #007bff; text-align: center;">{city_name} 最新天氣預報</h3>
+                        <p style="font-size: 18px;"><b>🌈 目前天氣：</b>{weather_desc}</p>
+                        <p style="font-size: 18px; color: #d9534f;"><b>☔ 降雨機率：</b>{rain_chance}%</p>
+                    </div>
+                    """
+                else:
+                    html_content += f"<h3 style='color: red;'>找不到「{city}」的天氣資料，請確認是否輸入正確的台灣縣市名稱。</h3>"
+
+            except Exception as e:
+                html_content += f"<h3 style='color: red;'>查詢失敗或 API 發生錯誤：{e}</h3>"
+        else:
+            html_content += "<h3 style='color: orange;'>請輸入縣市名稱再送出查詢！</h3>"
+
+    # 如果是 GET 請求 (剛進網頁)，或者 POST 執行完畢，最後都會回傳這個字串
+    return html_content
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 @app.route("/road")
 def road():

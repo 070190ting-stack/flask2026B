@@ -46,6 +46,7 @@ def index():
     link += "<br><a href=/weather>天氣與降雨</a><br>"
     link += "<br><a href=/rate>本周新片進DB</a><br>"
     return link
+    
 @app.route("/webhook", methods=["POST"])
 def webhook():
     # 取得 Dialogflow 傳來的請求資料
@@ -61,7 +62,7 @@ def webhook():
         # 取得使用者輸入的分級 (因為你說 Dialogflow 已經設定好同義詞轉換了)
         rate = req.get("queryResult", {}).get("parameters", {}).get("rate", "")
        
-        info = "我是施程瀚設計的機器人，您選擇的電影分級是：" + rate + "，本週相關電影有：\n\n"
+        info = "我是林建宇設計的機器人，您選擇的電影分級是：" + rate + "，本週相關電影有：\n\n"
 
         # 連線到 Firestore 資料庫
         db = firestore.client()
@@ -87,6 +88,8 @@ def webhook():
         else:
             info += "目前資料庫中找不到符合此分級的電影喔！"
 
+    # 將整理好的字串包裝成 Dialogflow 看得懂的 JSON 格式回傳
+    return make_response(jsonify({"fulfillmentText": info}))
 
 
 @app.route("/rate")

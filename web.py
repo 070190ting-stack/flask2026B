@@ -46,16 +46,46 @@ def index():
     link += "<br><a href=/weather>天氣與降雨</a><br>"
     link += "<br><a href=/rate>本周新片進DB</a><br>"
     return link
-
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # build a request object
+    # 取得 Dialogflow 傳來的請求資料
     req = request.get_json(force=True)
-    # fetch queryResult from json
-    action =  req["queryResult"]["action"]
-    msg =  req["queryResult"]["queryText"]
-    info = "我是施程瀚設計的機器人,動作：" + action + "； 查詢內容：" + msg
-    return make_response(jsonify({"fulfillmentText": info}))
+   
+    # 為了避免 KeyError 當機，改用 .get() 來安全取值
+    action = req.get("queryResult", {}).get("action", "")
+   
+    # 設定一個預設回覆
+    info = "抱歉，我目前無法處理這個動作喔！"
+   
+    if action == "rateChoice":
+        # 取得使用者輸入的分級 (因為你說 Dialogflow 已經設定好同義詞轉換了)
+        rate = req.get("queryResult", {}).get("parameters", {}).get("rate", "")
+       
+        info = "我是施程瀚設計的機器人，您選擇的電影分級是：" + rate + "，本週相關電影有：\n\n"
+
+        # 連線到 Firestore 資料庫
+        db = firestore.client()
+        # 注意：這裡要確定對應到你有爬蟲寫入資料的那個集合名稱
+        collection_ref = db.collection("本週新片含分級")
+        docs = collection_ref.get()
+       
+        result = ""
+        count = 0
+       
+        # 開始迴圈比對資料庫
+        for doc in docs:
+            movie_data = doc.to_dict()
+            # 比對 Dialogflow 傳來的分級是否包含在資料庫的 rate 欄位中
+            if rate in movie_data.get("rate", ""):
+                result += "🎬 片名：" + movie_data.get("title", "") + "\n"
+                #result += "🔗 介紹：" + movie_data.get("hyperlink", "") + "\n\n"
+                count += 1
+       
+        # 判斷有沒有找到符合條件的電影
+        if count > 0:
+            info += result
+        else:
+            info += "目前資料庫中找不到符合此分級的電影喔！"
 
 
 

@@ -72,7 +72,7 @@ def ask():
 
     else:    
         # 當使用者直接打開網頁 (GET) 時，顯示輸入框畫面
-        return render_template("ask.html")
+        return render_template("666.html")
 
 
 @app.route("/AI")

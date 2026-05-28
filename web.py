@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from google import genai
+from google.genai import types
 
 from flask import Flask, render_template, request, make_response, jsonify
 from datetime import datetime
@@ -126,12 +127,32 @@ def webhook():
                 count += 1
        
         # 判斷有沒有找到符合條件的電影
-        if count > 0:
             info += result
-        else:
-            info += "目前資料庫中找不到符合此分級的電影喔！"
+    elif (action == "input.unknown"):
+            info =  req["queryResult"]["queryText"]
 
-    # 將整理好的字串包裝成 Dialogflow 看得懂的 JSON 格式回傳
+        instruction_text = (
+            "你是一個熱心且知識豐富的專業智慧助理。"
+            "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"         
+        )
+
+
+        ai_config = types.GenerateContentConfig(
+            max_output_tokens=500, 
+            system_instruction=instruction_text
+        )
+
+        response = client.models.generate_content(
+            model='gemini-3.5-flash', 
+            contents=req["queryResult"]["queryText"],
+            config=ai_config,
+        )
+
+        if response.text:
+            info = response.text
+        else:
+            info = "抱歉，我現在無法生成回應，請稍後再試。"
+
     return make_response(jsonify({"fulfillmentText": info}))
 
 

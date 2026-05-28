@@ -123,27 +123,27 @@ def webhook():
             # 比對 Dialogflow 傳來的分級是否包含在資料庫的 rate 欄位中
             if rate in movie_data.get("rate", ""):
                 result += "🎬 片名：" + movie_data.get("title", "") + "\n"
-                #result += "🔗 介紹：" + movie_data.get("hyperlink", "") + "\n\n"
+                result += "🔗 介紹：" + movie_data.get("hyperlink", "") + "\n\n"
                 count += 1
        
         # 判斷有沒有找到符合條件的電影
-            info += result
-    elif (action == "input.unknown"):
-            info =  req["queryResult"]["queryText"]
+        info += result
 
+    elif (action == "input.unknown"):
+        #info =  req["queryResult"]["queryText"]
+       
         instruction_text = (
             "你是一個熱心且知識豐富的專業智慧助理。"
-            "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"         
+            "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"        
         )
 
 
         ai_config = types.GenerateContentConfig(
-            max_output_tokens=500, 
+            max_output_tokens=500,
             system_instruction=instruction_text
         )
-
         response = client.models.generate_content(
-            model='gemini-3.5-flash', 
+            model='gemini-3.5-flash',
             contents=req["queryResult"]["queryText"],
             config=ai_config,
         )
@@ -153,8 +153,9 @@ def webhook():
         else:
             info = "抱歉，我現在無法生成回應，請稍後再試。"
 
-    return make_response(jsonify({"fulfillmentText": info}))
 
+    # 將整理好的字串包裝成 Dialogflow 看得懂的 JSON 格式回傳
+    return make_response(jsonify({"fulfillmentText": info}))
 
 @app.route("/rate")
 def rate():
